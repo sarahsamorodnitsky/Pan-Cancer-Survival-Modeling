@@ -217,3 +217,5 @@ FS27.50 = AddAgeCensorToX(CancerData_SelectGenes, clinical_data_list_S, cancer_t
 F27.50.2 = FS27.50$X
 S27.50.2 = FS27.50$Y
 
+# Save the mutation data, survival data, names of the 27 cancer types, and the genes selected in an RDA file called "FSCG27_50_2.rda"
+save(F27.50.2, S27.50.2, cancer_types_27, NewGenes, file = "FSCG27_50.2_rda")
