@@ -194,7 +194,7 @@ CancerDataAndClinical = MatchBarCodes(CancerData, clinical_data, cancer_types)
 CancerData_RO = CancerDataAndClinical$X_new
 clinical_data_list = CancerDataAndClinical$Y_new 
 
-# Now removing the cancer types not being considered (c("PCPG", "PRAD", "TGCT", "THCA", "THYM"))
+# Now removing the cancer types not being considered (c("MESO", "PCPG", "PRAD", "TGCT", "THCA", "THYM"))
 CancerData_RO_S = CancerData_RO[!(names(CancerData_RO) %in% c("MESO", "PCPG", "PRAD", "TGCT", "THCA", "THYM"))]
 clinical_data_list_S = clinical_data_list[!(names(clinical_data_list) %in% c("MESO", "PCPG", "PRAD", "TGCT", "THCA", "THYM"))]
 cancer_types_27 = cancer_types[!(cancer_types %in% c("MESO", "PCPG", "PRAD", "TGCT", "THCA", "THYM"))]
