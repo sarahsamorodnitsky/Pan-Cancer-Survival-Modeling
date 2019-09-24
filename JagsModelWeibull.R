@@ -83,6 +83,7 @@ Generate5FoldTrainingSet = function(X, Y, cancer_types, n_vec) {
   prop = 0.2 # proportion to go into test set
   Training_obs = InitManyLists(n)
   names(Training_obs) = cancer_types
+  n = length(cancer_types)
   for (k in 1:n) { # for each cancer type
     current_n = n_vec[k] # size of current cancer type
     reorder_ind = sample(1:current_n, size = current_n, replace = F) # reorder the observations
