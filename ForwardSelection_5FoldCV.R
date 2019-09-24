@@ -510,7 +510,8 @@ Genes = NewGenes
 # in R, each step of the forward selection procedure was done in this way: 
 
 # Step one: no genes in the model
-CurrentCovariates = "NULL"
+### Copy and paste from here...
+CurrentCovariates = NULL ### Change this everytime a new gene is added
 NumberGenes = length(CurrentCovariates) # number genes currently in model
 PossibleNewCovariates = Genes[!(Genes %in% CurrentCovariates)]
 n_try = length(PossibleNewCovariates)
@@ -554,19 +555,14 @@ names(PL.p) = sapply(PossibleNewCovariates, function(i) paste(i, CurrentCovariat
 PL.ave = sapply(PL.p, mean)
 PL.ave[PL.ave == max(PL.ave)]
 
-
-
-  
-
-
-# Step one
-StepOne = ForwardSelectionFRG1B(CurrentPL = PL.0, CurrentCovariates =  NULL)
-StepOne
+### ... to here each time you want to add another gene to the model. 
 
 # Forward selection without TP53
 GenesNoTP53 = Genes[!(Genes %in% "TP53")]
 Genes = GenesNoTP53
 
+### Copy and paste from here...
+CurrentCovariates = NULL ### Change this every time a gene is added
 NumberGenes = length(CurrentCovariates) # number genes currently in model
 PossibleNewCovariates = Genes[!(Genes %in% CurrentCovariates)]
 n_try = length(PossibleNewCovariates)
@@ -607,5 +603,7 @@ end - start
 names(PL.p) = sapply(PossibleNewCovariates, function(i) paste(i, CurrentCovariates))
 PL.ave = sapply(PL.p, mean)
 PL.ave[PL.ave == max(PL.ave)]
+### ... to here each time you want to add another gene to the model. 
+
 
 
