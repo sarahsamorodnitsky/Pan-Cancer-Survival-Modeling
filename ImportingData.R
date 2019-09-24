@@ -4,6 +4,7 @@
 
 library(TCGA2STAT)
 
+setwd("/Users/sarahsamorodnitsky/Documents/PanCancerOmics")
 clinical_data = read.csv("TCGA-CDR.csv", header = T) # loads in TCGA clinical data
 cancer_types = levels(as.factor(clinical_data$type)) # cancer types available in TCGA dataset
 
@@ -181,6 +182,10 @@ AddAgeCensorToX = function(CancerData_SelectGenes, clinical_data_list_S, cancer_
 CancerData = GetTCGAData(clinical_data, cancer_types)
 names(CancerData) = cancer_types 
 
+# Removing any observations with NAs for age
+clinical_data$age_at_initial_pathologic_diagnosis = as.numeric(as.character(clinical_data$age_at_initial_pathologic_diagnosis)) # will cause NAs
+clinical_data = clinical_data[!is.na(clinical_data$age_at_initial_pathologic_diagnosis), ]
+
 # matching the patient barcodes between the mutation data from TCGA2STAT and 
 # TCGA clinical data 
 CancerDataAndClinical = MatchBarCodes(CancerData, clinical_data, cancer_types) 
@@ -199,6 +204,7 @@ all.match = c()
 for (i in 1:length(CancerData_RO_S)) {
   all.match[i] = identical(colnames(CancerData_RO_S[[i]]), as.character(clinical_data_list_S[[i]]$bcr_patient_barcode))
 }
+all.match
 
 # Calculating the average mutation rate across all cancer types
 AvgMutRate = MutationRateByCancer(CancerData_RO_S, cancer_types_27)
@@ -212,10 +218,22 @@ CancerData_SelectGenes = SelectGenesFromOrigData(CancerData_RO_S, clinical_data_
 # Check that each cancer type has the same number of columns/genes (should be length(NewGenes) = 50)
 sapply(CancerData_SelectGenes, ncol)
 
+# Check that there are no NAs in the age column
+any.NAs = c()
+for (i in 1:length(F27.50.2)) {
+  any.NAs[i] = any(is.na(F27.50.2[[i]][,1]))
+}
+any.NAs
+
 # Add the time of last contact to the mutation dataset
 FS27.50 = AddAgeCensorToX(CancerData_SelectGenes, clinical_data_list_S, cancer_types_27, NewGenes) # will give warnings
 F27.50.2 = FS27.50$X
 S27.50.2 = FS27.50$Y
 
 # Save the mutation data, survival data, names of the 27 cancer types, and the genes selected in an RDA file called "FSCG27_50_2.rda"
-save(F27.50.2, S27.50.2, cancer_types_27, NewGenes, file = "FSCG27_50.2_rda")
+save(F27.50.2, S27.50.2, cancer_types_27, NewGenes, file = "FSCG.rda", version = 2)
+
+# Checking for any NAs in the data (with the exception of the last contact column, which necessarily has NAs)
+check = sapply(F27.50.2, function(i) apply(i, 2, function(k) any(is.na(k))))
+check = check[-2, ] # removing the last contact column
+
