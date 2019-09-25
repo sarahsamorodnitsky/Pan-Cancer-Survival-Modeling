@@ -6,57 +6,6 @@ library(foreach)
 
 load("FSCG.rda")
 
-# Remove extraneous observations
-PreProcessing = function(X, Y, cancer_types) {
-  # Separates the censoring times from the rest of the data matrix
-  # Putting the data in usable form, saving the last contact column separately
-  # Returning data matrix, survival data, and last contact vector
-  n = length(X)
-  Last_Contact = list()
-  for (i in 1:n) {
-    current = X[[i]]
-    lc = current[,2]
-    Last_Contact[[i]] = lc
-    current = current[,-2]
-    X[[i]] = current
-    
-    # getting rid values that have NA for both last contact and for survival
-    current_length = nrow(X[[i]])
-    to_delete = c() # saving entries to delete because they are NAs
-    j = 1 # index of entries to delete
-    for (k in 1:current_length) {
-      last_contact_missing = is.na(Last_Contact[[i]][k])
-      NA_in_survival = is.na(Y[[i]][k])
-      if (last_contact_missing & NA_in_survival) {
-        to_delete[j] = k
-        j = j + 1
-      }
-    }
-    if (!is.null(to_delete)) {
-      Last_Contact[[i]] = Last_Contact[[i]][-to_delete]
-      X[[i]] = X[[i]][-to_delete,]
-      Y[[i]] = Y[[i]][-to_delete]
-    }
-  }
-  names(Last_Contact) = cancer_types
-  
-  # Getting rid of any observations who have a last contact value that is less than or equal to 0
-  for (k in 1:n) {
-    current_lc = Last_Contact[[k]]
-    current_data = X[[k]]
-    current_survival = Y[[k]]
-    any_negative_lc = current_lc <= 0 # which values are negative, this will be mostly falses
-    any_negative_lc[is.na(any_negative_lc)] = rep(FALSE, sum(is.na(any_negative_lc))) 
-    current_data = current_data[!any_negative_lc, ]
-    current_survival = current_survival[!any_negative_lc]
-    current_lc = current_lc[!any_negative_lc]
-    X[[k]] = current_data # saving the updated variables back into the overall data
-    Y[[k]] = current_survival
-    Last_Contact[[k]] = current_lc
-  }
-  return(list(Full = X, Survival = Y, LastContact = Last_Contact))
-}
-
 # For scaling
 CenterByMean = function(vec) {
   # centering the variable
