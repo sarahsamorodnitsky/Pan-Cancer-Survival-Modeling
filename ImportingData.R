@@ -4,7 +4,6 @@
 
 library(TCGA2STAT)
 
-setwd("/Users/sarahsamorodnitsky/Documents/PanCancerOmics")
 clinical_data = read.csv("TCGA-CDR.csv", header = T) # loads in TCGA clinical data
 cancer_types = levels(as.factor(clinical_data$type)) # cancer types available in TCGA dataset
 
@@ -178,6 +177,99 @@ AddAgeCensorToX = function(CancerData_SelectGenes, clinical_data_list_S, cancer_
   return(list(X = X, Y = Y))
 }
 
+# Removes extraneous variables from the mutation, survival, and censor data i.e.
+# any variables missing both a censor time & survival time, ones with a survival time
+# that is <= 0, or have a last contact time <= 0
+PreProcessing = function(X, Y, cancer_types) {
+  # Separates the censoring times from the rest of the data matrix
+  # Putting the data in usable form, saving the last contact column separately
+  # Returning data matrix, survival data, and last contact vector
+  
+  n = length(X)
+  Last_Contact = list()
+  
+  for (i in 1:n) {
+    current = X[[i]]
+    lc = current[,2]
+    Last_Contact[[i]] = lc
+    current = current[,-2]
+    X[[i]] = current
+    
+    # getting rid values that have NA for both last contact and for survival
+    if (is.null(nrow(X[[i]]))) {
+      current_length = length(X[[i]])
+    } else {
+      current_length = nrow(X[[i]])
+    }
+    
+    to_delete = c() # saving entries to delete because they are NAs
+    j = 1 # index of entries to delete
+    for (k in 1:current_length) {
+      last_contact_missing = is.na(Last_Contact[[i]][k])
+      NA_in_survival = is.na(Y[[i]][k])
+      if (last_contact_missing & NA_in_survival) {
+        to_delete[j] = k
+        j = j + 1
+      }
+    }
+    if (!is.null(to_delete)) {
+      if (is.null(nrow(X[[i]]))) {
+        Last_Contact[[i]] = Last_Contact[[i]][-to_delete]
+        X[[i]] = X[[i]][-to_delete]
+        Y[[i]] = Y[[i]][-to_delete]
+      } else {
+        Last_Contact[[i]] = Last_Contact[[i]][-to_delete]
+        X[[i]] = X[[i]][-to_delete,]
+        Y[[i]] = Y[[i]][-to_delete]
+      }
+    }
+  }
+  names(Last_Contact) = cancer_types
+  
+  # Getting rid of any observations who have a last contact value that is less than or equal to 0
+  for (k in 1:n) {
+    current_lc = Last_Contact[[k]]
+    current_data = X[[k]]
+    current_survival = Y[[k]]
+    any_negative_lc = current_lc <= 0 # which values are negative, this will be mostly falses
+    any_negative_lc[is.na(any_negative_lc)] = rep(FALSE, sum(is.na(any_negative_lc))) 
+    
+    if (is.null(nrow(current_data))) {
+      current_data = current_data[!any_negative_lc]
+      current_survival = current_survival[!any_negative_lc]
+      current_lc = current_lc[!any_negative_lc]
+    } else {
+      current_data = current_data[!any_negative_lc, ]
+      current_survival = current_survival[!any_negative_lc]
+      current_lc = current_lc[!any_negative_lc]
+    }
+    
+    X[[k]] = current_data # saving the updated variables back into the overall data
+    Y[[k]] = current_survival
+    Last_Contact[[k]] = current_lc
+  }
+  
+  # Getting rid of observations whose survival time is 0
+  for (k in 1:n) {
+    current_lc = Last_Contact[[k]]
+    current_data = X[[k]]
+    current_survival = Y[[k]]
+    
+    any_negative_survival = current_survival <= 0 
+    any_negative_survival[is.na(any_negative_survival)] = rep(FALSE, sum(is.na(any_negative_survival))) 
+    
+    current_data = current_data[!any_negative_survival, ]
+    current_survival = current_survival[!any_negative_survival]
+    current_lc = current_lc[!any_negative_survival]
+    
+    X[[k]] = current_data # saving the updated variables back into the overall data
+    Y[[k]] = current_survival
+    Last_Contact[[k]] = current_lc
+  }
+  
+  return(list(Full = X, Survival = Y, LastContact = Last_Contact))
+}
+
 # Downloading the data
 CancerData = GetTCGAData(clinical_data, cancer_types)
 names(CancerData) = cancer_types 
@@ -230,10 +322,38 @@ FS27.50 = AddAgeCensorToX(CancerData_SelectGenes, clinical_data_list_S, cancer_t
 F27.50.2 = FS27.50$X
 S27.50.2 = FS27.50$Y
 
-# Save the mutation data, survival data, names of the 27 cancer types, and the genes selected in an RDA file called "FSCG27_50_2.rda"
-save(F27.50.2, S27.50.2, cancer_types_27, NewGenes, file = "FSCG.rda", version = 2)
+# Processing the data so that extraneous observations are removed
+FS27.50.2 = PreProcessing(F27.50.2, S27.50.2, cancer_types_27)
+F27.50.3 = FS27.50.2$Full
+S27.50.3 = FS27.50.2$Survival
+Last_Contact = FS27.50.2$LastContact
 
-# Checking for any NAs in the data (with the exception of the last contact column, which necessarily has NAs)
-check = sapply(F27.50.2, function(i) apply(i, 2, function(k) any(is.na(k))))
+# Checking for any NAs in the mutation data (with the exception of the last contact column, which necessarily has NAs)
+check = sapply(F27.50.3, function(i) apply(i, 2, function(k) any(is.na(k))))
 check = check[-2, ] # removing the last contact column
+any(check)
 
+# Check for negative survival or last contact times
+any.neg.surv = c()
+any.neg.lc = c()
+for (i in 1:length(F27.50.3)) {
+  any.neg.surv[i] = any(na.omit(S27.50.3[[i]]) <= 0)
+  any.neg.lc[i] = any(na.omit(Last_Contact[[i]]) <= 0)
+}
+any(any.neg.surv)
+any(any.neg.lc)
+
+# Check the data for NAs in both last contact and survival
+same.length = c()
+NA.lc.surv = c()
+for (i in 1:length(S27.50.3)) {
+  same.length[i] = length(S27.50.3[[i]]) == length(Last_Contact[[i]])
+  for (j in 1:length(S27.50.3[[i]])) {
+    NA.lc.surv[j] = is.na(S27.50.3[[i]][j]) & is.na(Last_Contact[[i]][j])
+  }
+}
+same.length
+any(NA.lc.surv)
+
+# Save the mutation data, survival data, names of the 27 cancer types, and the genes selected in an RDA file called "FSCG.rda"
+save(F27.50.3, S27.50.3, Last_Contact, cancer_types_27, NewGenes, file = "FSCG.rda", version = 2)
