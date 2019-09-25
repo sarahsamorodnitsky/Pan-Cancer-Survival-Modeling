@@ -328,9 +328,8 @@ F27.50.3 = FS27.50.2$Full
 S27.50.3 = FS27.50.2$Survival
 Last_Contact = FS27.50.2$LastContact
 
-# Checking for any NAs in the mutation data (with the exception of the last contact column, which necessarily has NAs)
+# Checking for any NAs in the mutation data 
 check = sapply(F27.50.3, function(i) apply(i, 2, function(k) any(is.na(k))))
-check = check[-2, ] # removing the last contact column
 any(check)
 
 # Check for negative survival or last contact times
