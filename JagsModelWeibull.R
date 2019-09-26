@@ -199,9 +199,7 @@ PosteriorLikelihood = function(betas, shape, X, Y, Last_Contact, Training_obs) {
   return(PL_Survival)
 }
 
-# Some processing
-FS27.50 = PreProcessing(F27.50.2, S27.50.2, cancer_types_27)
-F27.50.3 = FS27.50$Full; S27.50.3 = FS27.50$Survival; Last_Contact_27 = FS27.50$LastContact # now we have all the components to create the credible intervals
+Last_Contact_27 = FS27.50$LastContact # now we have all the components to create the credible intervals
 
 # 5-fold cross validation
 cl <- makeCluster(12)
