@@ -4,6 +4,7 @@
 
 library(TCGA2STAT)
 
+load("CancerDataForFindingGenes.rda")
 clinical_data = read.csv("TCGA-CDR.csv", header = T) # loads in TCGA clinical data
 cancer_types = levels(as.factor(clinical_data$type)) # cancer types available in TCGA dataset
 
@@ -63,13 +64,11 @@ MutationRateByCancer = function(CancerData, cancer_types) {
   # first collect all the genes we have data on
   all_genes = c()
   for (i in 1:n) {
-    if (i != 19) {
-      type = CancerData[[i]]
-      genes.i = rownames(type) # the genes for which data is available for the ith cancer type
-      
-      genes_to_add = genes.i[!(genes.i %in% all_genes)] # genes in current cancer type which have not been saved yet
-      all_genes = c(all_genes, genes_to_add)
-    }
+    type = CancerData[[i]]
+    genes.i = rownames(type) # the genes for which data is available for the ith cancer type
+    
+    genes_to_add = genes.i[!(genes.i %in% all_genes)] # genes in current cancer type which have not been saved yet
+    all_genes = c(all_genes, genes_to_add)
   }
   
   # put those genes into a dataframe
@@ -81,7 +80,6 @@ MutationRateByCancer = function(CancerData, cancer_types) {
   # for any gene that a cancer type has no data on, add a zero
   # make sure the names of the genes for each cancer type align with the order in the dataframe rates
   for (i in 1:n) {
-    if (i != 19) {
       type = CancerData[[i]]
       rates.i = apply(type, 1, function(row) sum(row)/length(row))
       genes.i = rownames(type) # current genes
@@ -94,12 +92,6 @@ MutationRateByCancer = function(CancerData, cancer_types) {
       rates.i = c(rates.i, rates_to_add.i) # update rates vector so it is the same length as the rates dataframe
       rates.i.ord = rates.i[order(factor(names(rates.i), levels = as.character(rates$gene)))]
       rates = cbind(rates, rates.i.ord)
-    }
-    
-    if (i == 19) {
-      rates.i = rep(0, nrow(rates))
-      rates = cbind(rates, rates.i)
-    }
   }
   
   rownames(rates) = rates$gene
@@ -110,7 +102,7 @@ MutationRateByCancer = function(CancerData, cancer_types) {
   # each entry is the mutation rate for that cancer type and that gene
   
   # subset the rates only for the cancer types of interest
-  rates = rates[,!(colnames(rates) %in% c("PCPG", "PRAD", "TGCT", "THCA", "THYM"))]
+  # rates = rates[,!(colnames(rates) %in% c("PCPG", "PRAD", "TGCT", "THCA", "THYM"))]
   
   # now take the average mutation rate for each gene for each cancer type
   avg_rates = apply(rates, 1, mean)
