@@ -4,7 +4,6 @@ library(EnvStats)
 
 load("FSCG.rda")
 
-
 Generate5FoldTrainingSet = function(X, Y, cancer_types, n_vec) {
   # Generates 5 folds of training values for each cancer type
   # non-randomly because of the seed
@@ -58,8 +57,9 @@ Generate5FoldTrainingSet = function(X, Y, cancer_types, n_vec) {
   return(list(Training_obs = Training_obs))
 }
 
+# The model which returns the set of training observations
 ModelOnTrainingData.NoGenes = function(Full_Input_C, Survival_Input_C, Last_Contact, sigma2_start, genes,
-                                       beta_tilde_start, lambda2_start, iters, p, cv_iter, F5Training_obs) {
+                                       beta_tilde_start, lambda2_start, iters, p, cv_iter, F5Training_Obs) {
   # Survival_Dist = "normal" if survival times generated from truncated normal dist or
   # "log-normal" if survival times generated from truncated log-normal distribution
   # p = the number of covariates: age + 55 gene mutation status + the intercept (user-supplied)
@@ -143,8 +143,8 @@ ModelOnTrainingData.NoGenes = function(Full_Input_C, Survival_Input_C, Last_Cont
   # Centering age
   for (i in 1:n) {
     current = X[[i]]
-    current.2 = CenterByMean(current)
-    X[[i]] = current.2
+    current1 = CenterByMean(current)
+    X[[i]] = current1
   }
   
   # Adding an intercept
@@ -161,7 +161,7 @@ ModelOnTrainingData.NoGenes = function(Full_Input_C, Survival_Input_C, Last_Cont
     Censored[[j]] = current_rows
   }
   
-  n_vec =  c(unlist(lapply(X, nrow))) # the number of observations per group
+  n_vec =  c(unlist(lapply(X, length))) # the number of observations per group
   I = length(n_vec) # the number of cancer types
   
   # creating other important quantities
@@ -181,10 +181,12 @@ ModelOnTrainingData.NoGenes = function(Full_Input_C, Survival_Input_C, Last_Cont
   sigma2 = c()
   sigma2[1] = sigma2_start
   
-  colnames(beta_tilde) = c("Intercept","Age")
-  colnames(lambda2) = colnames(beta_tilde)
+  if (ncol(X[[1]]) == 2) { # just intercept and age
+    colnames(beta_tilde) = c("Intercept","Age")
+  } else {
+    colnames(beta_tilde) = c("Intercept","Age", paste("Mut Status", genes))
+  }
   
-  # subsetting X and Y into training set
   # Creating a training set of observations
   current_train_ind = sapply(F5Training_obs[[1]], '[', cv_iter)
   X_S = lapply(1:length(X), function(k) X[[k]][current_train_ind[[k]], ]); names(X_S) = cancer_types_27
@@ -192,7 +194,7 @@ ModelOnTrainingData.NoGenes = function(Full_Input_C, Survival_Input_C, Last_Cont
   Last_Contact_S = lapply(1:length(Last_Contact), function(k) Last_Contact[[k]][current_train_ind[[k]]])
   Censored_S = lapply(1:length(Y), function(k) which(is.na(Y_S[[k]])))
   
-  total_obs2 = sum(sapply(Y_S, length))
+  total_obs2 = sum(sapply(Y_S, length)) # calculating the total number of observations after subsetting
   
   # initializing Y so that each censored observation is replaced with last contact time
   for (k in 1:n) {
@@ -240,8 +242,10 @@ ModelOnTrainingData.NoGenes = function(Full_Input_C, Survival_Input_C, Last_Cont
       Censored_Last_Contact = Last_Contact_S[[k]][Censored_S[[k]]]
       Censor_Lower_Bound = Last_Contact_S[[k]][Censored_S[[k]]]
       
-      Mu_Survival = current_betas[[k]][1] + 
-        current_betas[[k]][2]*Censored_Obs[,2] 
+      # Mu_Survival = current_betas[[k]][1] + 
+      #   current_betas[[k]][2]*Censored_Obs[,2] + 
+      #   current_betas[[k]][3]*Censored_Obs[,3]
+      Mu_Survival = Censored_Obs %*% t(t(current_betas[[k]]))
       random_survival = rtruncnorm(n_gens, a = log(abs(Censor_Lower_Bound)), 
                                    mean = Mu_Survival, 
                                    sd = rep(sqrt(sigma2[i]), n_gens))
@@ -251,8 +255,9 @@ ModelOnTrainingData.NoGenes = function(Full_Input_C, Survival_Input_C, Last_Cont
   
   
   return(list(betas = betas, beta_tilde = beta_tilde, lambda2 = lambda2, sigma2 = sigma2, 
-              Training_obs = Training_obs))
+              current_train_ind = current_train_ind))
 }
+
 
 # To subset out a specific set of genes
 SubsetNGenes = function(F27.50.2, Genes) {
@@ -271,75 +276,6 @@ SubsetNGenes = function(F27.50.2, Genes) {
   return(F27.N.2)
 }
 
-# Separate out last contact column
-PreProcessing = function(X, Y, cancer_types) {
-  # Separates the censoring times from the rest of the data matrix
-  # Putting the data in usable form, saving the last contact column separately
-  # Returning data matrix, survival data, and last contact vector
-  n = length(X)
-  Last_Contact = list()
-  for (i in 1:n) {
-    current = X[[i]]
-    lc = current[,2]
-    Last_Contact[[i]] = lc
-    current = current[,-2]
-    X[[i]] = current
-    
-    # getting rid values that have NA for both last contact and for survival
-    if (is.null(nrow(X[[i]]))) {
-      current_length = length(X[[i]])
-    } else {
-      current_length = nrow(X[[i]])
-    }
-    
-    to_delete = c() # saving entries to delete because they are NAs
-    j = 1 # index of entries to delete
-    for (k in 1:current_length) {
-      last_contact_missing = is.na(Last_Contact[[i]][k])
-      NA_in_survival = is.na(Y[[i]][k])
-      if (last_contact_missing & NA_in_survival) {
-        to_delete[j] = k
-        j = j + 1
-      }
-    }
-    if (!is.null(to_delete)) {
-      if (is.null(nrow(X[[i]]))) {
-        Last_Contact[[i]] = Last_Contact[[i]][-to_delete]
-        X[[i]] = X[[i]][-to_delete]
-        Y[[i]] = Y[[i]][-to_delete]
-      } else {
-        Last_Contact[[i]] = Last_Contact[[i]][-to_delete]
-        X[[i]] = X[[i]][-to_delete,]
-        Y[[i]] = Y[[i]][-to_delete]
-      }
-    }
-  }
-  names(Last_Contact) = cancer_types
-  
-  # Getting rid of any observations who have a last contact value that is less than or equal to 0
-  for (k in 1:n) {
-    current_lc = Last_Contact[[k]]
-    current_data = X[[k]]
-    current_survival = Y[[k]]
-    any_negative_lc = current_lc <= 0 # which values are negative, this will be mostly falses
-    any_negative_lc[is.na(any_negative_lc)] = rep(FALSE, sum(is.na(any_negative_lc))) 
-    
-    if (is.null(nrow(current_data))) {
-      current_data = current_data[!any_negative_lc]
-      current_survival = current_survival[!any_negative_lc]
-      current_lc = current_lc[!any_negative_lc]
-    } else {
-      current_data = current_data[!any_negative_lc, ]
-      current_survival = current_survival[!any_negative_lc]
-      current_lc = current_lc[!any_negative_lc]
-    }
-    
-    X[[k]] = current_data # saving the updated variables back into the overall data
-    Y[[k]] = current_survival
-    Last_Contact[[k]] = current_lc
-  }
-  return(list(Full = X, Survival = Y, LastContact = Last_Contact))
-}
 
 # Function for calculating the posterior likelihood
 PosteriorLikelihood = function(posteriors, X, Y) {
@@ -411,15 +347,15 @@ PosteriorLikelihood = function(posteriors, X, Y) {
   Training_obs = posteriors$Training_obs
   betas = posteriors$betas
   sigma2 = posteriors$sigma2
-  Test_obs = lapply(seq(length(cancer_types)), function(i) seq(n_vec[i])[!(seq(n_vec[i]) %in% Training_obs[[i]])]) # gathering test observation indices
+  Test_obs = lapply(seq(length(cancer_types_27)), function(i) seq(n_vec[i])[!(seq(n_vec[i]) %in% Training_obs[[i]])]) # gathering test observation indices
   
   
   # Obtaining test observations and their times of last contact, etc
-  Y_test = lapply(seq(length(cancer_types)), function(i) Y[[i]][Test_obs[[i]]]) 
-  X_test = lapply(seq(length(cancer_types)), function(i) X[[i]][Test_obs[[i]], ])
-  Last_Contact_test = lapply(seq(length(cancer_types)), function(i) Last_Contact[[i]][Test_obs[[i]]])
+  Y_test = lapply(seq(length(cancer_types_27)), function(i) Y[[i]][Test_obs[[i]]]) 
+  X_test = lapply(seq(length(cancer_types_27)), function(i) X[[i]][Test_obs[[i]], ])
+  Last_Contact_test = lapply(seq(length(cancer_types_27)), function(i) Last_Contact[[i]][Test_obs[[i]]])
   # combine test data into one list
-  List_XY = lapply(seq(length(cancer_types)), function(i) cbind(X_test[[i]], Y_test[[i]], Last_Contact_test[[i]]))
+  List_XY = lapply(seq(length(cancer_types_27)), function(i) cbind(X_test[[i]], Y_test[[i]], Last_Contact_test[[i]]))
   
   y_col = ncol(List_XY[[1]]) - 1 # the column in List_XY that contains the survival time
   yc_col = ncol(List_XY[[1]]) # the column in List_XY that contains the censor time
@@ -433,11 +369,11 @@ PosteriorLikelihood = function(posteriors, X, Y) {
     # apply Likelihood with the corresponding cancer type's posterior parameters
     # at the jth iteration
     # takes 7 seconds to run
-    postlike = lapply(seq(length(cancer_types)), function(k) sapply(seq(nrow(List_XY[[k]])), # for each cancer type
-                                                                    function(i) LogLikelihood(List_XY[[k]][i, -c(y_col, yc_col)], List_XY[[k]][i, y_col],  # for each patient in the test set
-                                                                                              List_XY[[k]][i, yc_col], # ith observation, censor time
-                                                                                              betas[[k]][[j]],  # kth cancer type, jth iteration posterior
-                                                                                              sigma2[j])))
+    posterior.vec[[j]] = lapply(seq(length(cancer_types_27)), function(k) sapply(seq(nrow(List_XY[[k]])), # for each cancer type
+                                                                                 function(i) LogLikelihood(List_XY[[k]][i, -c(y_col, yc_col)], List_XY[[k]][i, y_col],  # for each patient in the test set
+                                                                                                           List_XY[[k]][i, yc_col], # ith observation, censor time
+                                                                                                           betas[[k]][[j]],  # kth cancer type, jth iteration posterior
+                                                                                                           sigma2[j])))
     
   }
   
@@ -455,9 +391,8 @@ PosteriorLikelihood = function(posteriors, X, Y) {
   return(PL_Survival)
 }
 
-F27.0.2 = SubsetNGenes(F27.50.2, Genes = NULL); S27.0.2 = S27.50.2
-FS27.0 = PreProcessing(F27.0.2, S27.0.2, cancer_types)
-F27.0.3 = FS27.0$Full; S27.0.3 = FS27.0$Survival; Last_Contact.0 = FS27.0$LastContact
+F27.0.3 = SubsetNGenes(F27.50.3, Genes = NULL)
+S27.0.3 = S27.50.3; Last_Contact.0 = Last_Contact
 
 Genes = NULL
 p = 2 + length(Genes)
@@ -470,16 +405,16 @@ start <- Sys.time()
 cl <- makeCluster(12)
 registerDoParallel(cl)
 PL.p0 = foreach(g = 1:n_try, .packages = c("MASS", "truncnorm", "EnvStats"),
-                .export = c("SubsetNGenes", "PreProcessing", "Generate5FoldTrainingSet", "ModelOnTrainingData",
+                .export = c("SubsetNGenes", "Generate5FoldTrainingSet", "ModelOnTrainingData",
                             "PosteriorLikelihood")) %dopar% {
-      for (cv_iter in 1:5) {
-        Model.0 = ModelOnTrainingData.NoGenes(F33.0.3, S33.0.3, Last_Contact, sigma2_start, genes = NULL,
-                                              beta_tilde_start, lambda2_start, iters, p)
-        PosteriorLikelihood(Model.0, F33.0.3, S33.0.3)
-      }
-}
+                              for (cv_iter in 1:5) {
+                                n_vec =  c(unlist(lapply(F27.0.3, length)))
+                                F5Training_obs = Generate5FoldTrainingSet(F27.0.3, S27.0.3, cancer_types_27, n_vec)
+                                Model.0 = ModelOnTrainingData.NoGenes(F27.0.3, S27.0.3, Last_Contact.0, sigma2_start, genes = NULL,
+                                                                      beta_tilde_start, lambda2_start, iters, p, cv_iter, F5Training_obs)
+                                PosteriorLikelihood(Model.0, F27.0.3, S27.0.3)
+                              }
+                            }
+stopCluster(cl)
 
-
-# Might consider doing this but would need to update Model to reflect new data format
 mean(PL.p0)
-
