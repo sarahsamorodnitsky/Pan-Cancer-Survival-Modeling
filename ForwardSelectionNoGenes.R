@@ -269,13 +269,12 @@ SubsetNGenes = function(F27.50.2, Genes) {
     current_genes = colnames(current_type)
     current_available = current_genes %in% Genes
     current_subset = current_type[, current_available]
-    current_subset = cbind(current_type[,1:2], current_subset)
-    colnames(current_subset) = c("Age", "LastContact", current_genes[current_genes %in% Genes])
+    current_subset = cbind(current_type[,1], current_subset)
+    colnames(current_subset) = c("Age", current_genes[current_genes %in% Genes])
     F27.N.2[[i]] = current_subset
   }
   return(F27.N.2)
 }
-
 
 # Function for calculating the posterior likelihood
 PosteriorLikelihood = function(posteriors, X, Y) {
@@ -404,17 +403,16 @@ iters = 20000
 start <- Sys.time()
 cl <- makeCluster(12)
 registerDoParallel(cl)
-PL.p0 = foreach(g = 1:n_try, .packages = c("MASS", "truncnorm", "EnvStats"),
-                .export = c("SubsetNGenes", "Generate5FoldTrainingSet", "ModelOnTrainingData",
-                            "PosteriorLikelihood")) %dopar% {
-                              for (cv_iter in 1:5) {
-                                n_vec =  c(unlist(lapply(F27.0.3, length)))
-                                F5Training_obs = Generate5FoldTrainingSet(F27.0.3, S27.0.3, cancer_types_27, n_vec)
-                                Model.0 = ModelOnTrainingData.NoGenes(F27.0.3, S27.0.3, Last_Contact.0, sigma2_start, genes = NULL,
-                                                                      beta_tilde_start, lambda2_start, iters, p, cv_iter, F5Training_obs)
-                                PosteriorLikelihood(Model.0, F27.0.3, S27.0.3)
-                              }
+PL.p0 = foreach(cv_iter = 1:5, .packages = c("MASS", "truncnorm", "EnvStats"),
+                .export = c("SubsetNGenes", "Generate5FoldTrainingSet", "ModelOnTrainingData.NoGenes",
+                            "PosteriorLikelihood"), .combine = c) %dopar% {
+                              n_vec =  c(unlist(lapply(F27.0.3, length)))
+                              F5Training_obs = Generate5FoldTrainingSet(F27.0.3, S27.0.3, cancer_types_27, n_vec)
+                              Model.0 = ModelOnTrainingData.NoGenes(F27.0.3, S27.0.3, Last_Contact.0, sigma2_start, genes = NULL,
+                                                                    beta_tilde_start, lambda2_start, iters, p, cv_iter, F5Training_obs)
+                              PosteriorLikelihood(Model.0, F27.0.3, S27.0.3)
                             }
 stopCluster(cl)
-
+end = Sys.time()
+end - start
 mean(PL.p0)
