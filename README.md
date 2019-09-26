@@ -13,7 +13,7 @@ In ForwardSelection_5FoldCV.R, one can find the code to run the forward selectio
 
 (5) Survival_Curves_ACC.R: In this script, one can find the code we used to create the survival curves for a patient with ACC depending on various ages and combinations of mutation statuses. The script imports the posteriors from fitting the final model, the .rda file of which can be found in this repository. 
 
-(6)
+(6) SimulateCoverage.R: Here, one can find the simulation we used to assess the coverage rates of our in-house Gibbs sampler. This script generates 1000 datasets based on fixed true values of the parameters, calculates the posteriors for the parameters using our model, calculates the credible intervals for each, and then checks if the true value of each parameter used to generate the data is contained in the credible interval. 
 
 
 
