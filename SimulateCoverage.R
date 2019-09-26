@@ -3,6 +3,9 @@ library(MASS)
 library(EnvStats)
 library(svMisc)
 
+clinical_data = read.csv("TCGA-CDR.csv")
+cancer_types = as.character(unique(clinical_data$type))
+
 # Assess coverage rates
 # Simulation to evaluate coverage
 SimulateCoverage = function(iters) {
@@ -62,6 +65,27 @@ SimulateCoverage = function(iters) {
     return(new_list)
   }
   
+  CredibleInterval = function(sorted_parameter, iters) {
+    # Returns credible interval for sorted parameter
+    # if sorted_parameter is a matrix, then it returns a list of credible intervals (for the betas)
+    # otherwise returns a single credible interval, for sigma^2 or lambda^2 or beta_tilde
+    cutoff_2.5 = iters*0.025 # cut offs for credible interval
+    cutoff_97.5 = iters*0.975 
+    if (is.vector(sorted_parameter)) { # if the parameter is sigma2 or beta_tilde or lambda2
+      interval = c(sorted_parameter[cutoff_2.5 + 1], 
+                   sorted_parameter[cutoff_97.5 - 1]) # cutting off upper and lower 2.5%tile
+    } else { # if the parameter is the betas
+      interval = list()
+      p = ncol(sorted_parameter)
+      for (i in 1:p) {
+        current_interval = c(sorted_parameter[cutoff_2.5 + 1, i], 
+                             sorted_parameter[cutoff_97.5 - 1, i])
+        interval[[i]] = current_interval
+      }
+    }
+    return(interval)
+  }
+  
   PosteriorBetasReformat = function(betas, cancer_types) {
     # lapply(test, function(x) apply(matrix(unlist(x), ncol = 3, byrow = TRUE)[1001:2000,], 2, sort)) another way of doing this w/o a loop
     n = length(betas)
@@ -76,11 +100,11 @@ SimulateCoverage = function(iters) {
     return(Reformatted_Betas)
   }
   
-  PosteriorBetasIntervals = function(betas, cancer_types) {
+  PosteriorBetasIntervals = function(betas, cancer_types, iters) {
     Intervals = list()
     n = length(betas)
     for (i in 1:n) {
-      current = CredibleInterval(betas[[i]])
+      current = CredibleInterval(betas[[i]], iters)
       Intervals[[i]] = current
     }
     names(Intervals) = cancer_types
@@ -146,7 +170,7 @@ SimulateCoverage = function(iters) {
     }
     
     n_vec =  c(unlist(lapply(X2, nrow)))
-    I = length(cancer_types) # the number of cancer types
+    I = length(n_vec) # the number of cancer types
     p = 3 # the number of covariates: age and TP53 mutation status + the intercept
     
     # creating other important quantities
@@ -262,10 +286,10 @@ SimulateCoverage = function(iters) {
     betas = PosteriorBetasReformat(Posteriors$betas, cancer_types)
     
     # Creating credible intervals
-    beta_tilde_interval = CredibleInterval(beta_tilde)
-    sigma2_interval = CredibleInterval(sigma2)
-    lambda2_interval = CredibleInterval(lambda2)
-    beta_intervals = PosteriorBetasIntervals(betas, cancer_types)
+    beta_tilde_interval = CredibleInterval(beta_tilde, iters)
+    sigma2_interval = CredibleInterval(sigma2, iters)
+    lambda2_interval = CredibleInterval(lambda2, iters)
+    beta_intervals = PosteriorBetasIntervals(betas, cancer_types, iters)
     
     Intervals = matrix(unlist(list(beta_tilde_interval, sigma2_interval, 
                                    lambda2_interval, beta_intervals)), ncol = 2, byrow = T)
