@@ -1,4 +1,5 @@
 # The JAGS script for the Weibull model including all genes and age as predictors
+# Author: Sarah Samorodnitsky
 
 library(rjags)
 library(doParallel)

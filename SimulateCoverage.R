@@ -1,3 +1,6 @@
+# Model validation for Gibbs sampler
+# Author: Sarah Samorodnitsky
+
 library(truncnorm)
 library(MASS)
 library(EnvStats)

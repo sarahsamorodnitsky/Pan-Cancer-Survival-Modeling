@@ -1,3 +1,7 @@
+# Forward selection for iteratively adding genes to model and determing which 
+# maximizes the log-posterior likelihood. 
+# Author: Sarah Samorodnitsky
+
 load("FSCG.rda")
 
 library(MASS)

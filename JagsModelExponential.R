@@ -1,4 +1,5 @@
-# The JAGS script for the exponential model including all genes and age as predictors
+# Script for exponential survival model fit in JAGS 
+# Author: Sarah Samorodnitsky
 
 library(rjags)
 library(doParallel)
@@ -30,9 +31,9 @@ Generate5FoldTrainingSet = function(X, Y, cancer_types, n_vec) {
   
   # subsetting Y into training set
   prop = 0.2 # proportion to go into test set
+  n = length(cancer_types)
   Training_obs = InitManyLists(n)
   names(Training_obs) = cancer_types
-  n = length(cancer_types)
   for (k in 1:n) { # for each cancer type
     current_n = n_vec[k] # size of current cancer type
     reorder_ind = sample(1:current_n, size = current_n, replace = F) # reorder the observations
@@ -136,7 +137,7 @@ PosteriorLikelihood = function(betas, X, Y, Last_Contact, Training_obs) {
   
   # gathering test observation indices
   Test_obs = lapply(seq(length(cancer_types_27)), 
-             function(i) seq(n_vec[i])[!(seq(n_vec[i]) %in% Training_obs[[i]])]) 
+                    function(i) seq(n_vec[i])[!(seq(n_vec[i]) %in% Training_obs[[i]])]) 
   
   # Obtaining test observations and their times of last contact, etc
   Y_test = lapply(seq(length(cancer_types_27)), function(i) Y[[i]][Test_obs[[i]]]) 
@@ -162,11 +163,11 @@ PosteriorLikelihood = function(betas, X, Y, Last_Contact, Training_obs) {
     # takes 7 seconds to run
     #EFL: also changed here 'i' to 'j' on left-hand side below
     posterior.vec[[j]] = unlist(lapply(seq(length(cancer_types_27)), 
-                                    function(k) sapply(seq(nrow(List_XY[[k]])), # k is for each cancer type
-                                    function(i) LogExponentialLikelihood(List_XY[[k]][i, -c(y_col, yc_col)], 
-                                                                     List_XY[[k]][i, y_col],  # i is for each patient in the test set
-                                                                     List_XY[[k]][i, yc_col], # ith observation, censor time
-                                                                     betas[[k]][[j]]))))  # kth cancer type, jth iteration posterior
+                                       function(k) sapply(seq(nrow(List_XY[[k]])), # k is for each cancer type
+                                                          function(i) LogExponentialLikelihood(List_XY[[k]][i, -c(y_col, yc_col)], 
+                                                                                               List_XY[[k]][i, y_col],  # i is for each patient in the test set
+                                                                                               List_XY[[k]][i, yc_col], # ith observation, censor time
+                                                                                               betas[[k]][[j]]))))  # kth cancer type, jth iteration posterior
   }
   
   # calculating the posterior likelihood
@@ -200,6 +201,8 @@ PosteriorLikelihood = function(betas, X, Y, Last_Contact, Training_obs) {
   return(PL_Survival)
 }
 
+Last_Contact_27 = Last_Contact
+
 # 5-fold cross validation
 cl <- makeCluster(12)
 registerDoParallel(cl)
@@ -218,6 +221,7 @@ PL.exp = foreach(cv_iter = 1:5, .combine = c, .packages = c("rjags")) %dopar%{
   # Adding cancer types to data
   names(S27.50.3_S) = cancer_types_27
   names(Last_Contact_27_S) = cancer_types_27
+  
   
   # Centering age in the design matrix for each inner matrix
   F27.50.3_S = lapply(F27.50.3_S, function(mat) {
@@ -256,48 +260,49 @@ PL.exp = foreach(cv_iter = 1:5, .combine = c, .packages = c("rjags")) %dopar%{
   
   # Setting up the data for JAGS
   tcga.data_S <- with(F27.50.3_S.mat,
-                    list("X" = F27.50.3_S.mat[, 1:52],
-                         "is.censored" = (censored==1),
-                         "tcens" = tcens,
-                         "t" = ifelse(censored==1, tcens, NA),
-                         "cancer" = as.numeric(cancer), 
-                         "shape"=1) #set shape parameter to 1 for Weibull (gives exponential distribution)
+                      list("X" = F27.50.3_S.mat[, 1:52],
+                           "is.censored" = (censored==1),
+                           "tcens" = tcens,
+                           "t" = ifelse(censored==1, tcens, NA),
+                           "cancer" = as.numeric(cancer), 
+                           "shape"=1) #set shape parameter to 1 for Weibull (gives exponential distribution)
   )
   
   # setting up the model
   jags.model.full.cv_iter <- "model {
-    for(i in 1:length(t)) { # for each observation
-      is.censored[i] ~ dinterval(t[i], tcens[i])
-      t[i] ~ dweib(shape, 1/lambda[i])
-      log(lambda[i]) <- inprod(X[i,1:52], beta[cancer[i],])
-    }
-    
-    # Priors
-    for (i in 1:27) { # for each cancer type
-    for (j in 1:52) { # for each covariate including the intercept
-    beta[i, j] ~ dnorm(betatilde[j], g[j])
-    }
-    }
-    
-    tau2 <- 1/(10000*10000)
-    for (j in 1:52) { # for each covariate
-    g[j] ~ dgamma(0.01, 0.01)
-    betatilde[j] ~ dnorm(0, tau2)
-    }
-    
-    }"  
+  for(i in 1:length(t)) { # for each observation
+  is.censored[i] ~ dinterval(t[i], tcens[i])
+  t[i] ~ dweib(shape, 1/lambda[i])
+  log(lambda[i]) <- inprod(X[i,1:52], beta[cancer[i],])
+  }
+  
+  # Priors
+  for (i in 1:27) { # for each cancer type
+  for (j in 1:52) { # for each covariate including the intercept
+  beta[i, j] ~ dnorm(betatilde[j], g[j])
+  }
+  }
+  
+  tau2 <- 1/(10000*10000)
+  for (j in 1:52) { # for each covariate
+  g[j] ~ dgamma(0.01, 0.01)
+  betatilde[j] ~ dnorm(0, tau2)
+  }
+  
+}"  
   
   # Load and compile the model
   mod.full.cv_iter <- jags.model(textConnection(jags.model.full.cv_iter),
-                         data = tcga.data_S) 
+                                 data = tcga.data_S) 
   
   # Burn-in
   update(mod.full.cv_iter, 10000) 
   
   # Generate 15000 more iterations
   s.cv_iter <- jags.samples(mod.full.cv_iter, c('beta', 'betatilde', 'g'), 
-                    n.iter = 10000, thin = 10) 
+                            n.iter = 10000, thin = 10) 
   
+  iters = 10000
   # Save the posteriors for betas in format compatible with posterior likelihood function
   betas = lapply(1:length(F27.50.3_S), function(type) { # for each cancer type
     lapply(1:(iters/10), function(iter) { # for each iteration (there are 1500 because the chain was thinned every 10 samples)
@@ -309,7 +314,8 @@ PL.exp = foreach(cv_iter = 1:5, .combine = c, .packages = c("rjags")) %dopar%{
   names(betas) = cancer_types_27 # name the betas by the cancer type
   
   PosteriorLikelihood(betas = betas, X = F27.50.3, Y = S27.50.3, Last_Contact = Last_Contact_27, Training_obs = Training_obs_cv_iter)
-}
+  }
 stopCluster(cl)
 
 mean(PL.exp) 
+

@@ -1,3 +1,6 @@
+# Calculating the log-posterior likelihood when no genes are in the model.
+# Author: Sarah Samorodnitsky
+
 library(MASS)
 library(truncnorm)
 library(EnvStats)

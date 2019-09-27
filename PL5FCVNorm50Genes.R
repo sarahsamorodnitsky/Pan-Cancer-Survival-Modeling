@@ -1,3 +1,6 @@
+# Script for calculating the log-posterior likelihood for the normal survival model
+# Author: Sarah Samorodnitsky
+
 library(MASS)
 library(truncnorm)
 library(EnvStats)
