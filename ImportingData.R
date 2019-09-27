@@ -1,10 +1,11 @@
-### Code for importing data and calculating mutation rates across cancer types
-### Using TCGA2STAT library, imports data through Broad Firehose pipeline in ready-to-use
-### format for statistical analysis. 
+# Code for importing data and calculating mutation rates across cancer types
+# Using TCGA2STAT library, imports data through Broad Firehose pipeline in ready-to-use
+# format for statistical analysis. 
+# Author: SarahSamorodnitsky
 
 library(TCGA2STAT)
 
-load("CancerDataForFindingGenes.rda")
+# load("CancerDataForFindingGenes.rda") # Use this if having trouble with TCGA2STAT package
 clinical_data = read.csv("TCGA-CDR.csv", header = T) # loads in TCGA clinical data
 cancer_types = levels(as.factor(clinical_data$type)) # cancer types available in TCGA dataset
 
