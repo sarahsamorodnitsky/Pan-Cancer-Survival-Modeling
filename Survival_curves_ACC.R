@@ -1,7 +1,10 @@
+# For producing survival curve plots
+# Author: Dr. Eric Lock and Sarah Samorodnitsky
+
 library(scales)
 
 load('FSCG.rda')
-load('~/Dropbox/PanCancerOutcome/Data/FinalModelFromForwardSelectionFAT4_TP53.rda')
+load('FinalModelFromForwardSelectionFAT4_TP53.rda')
 
 SubsetNGenes = function(F33.55.2, Genes) {
   # Subsets entire dataset to just a selected set of genes
@@ -37,41 +40,6 @@ age.vec.30.50.80 = c(30, 50, 80)
 
 i = which(cancer_types_27 == "ACC")
 Mat <- matrix(unlist(FinalModelPosteriors$betas[[i]]), ncol=4,byrow=TRUE)[10001:20000,]
-
-png('ACC_figs_new.png',width=900,height=700)
-par(mfrow = c(3,4))
-for(j in 1:length(age.vec.30.50.80)){ # for each age potential age (of 30, 50, 80)
-  for(Fig in 1:4){
-    if(Fig==1){ k=1; l=1} 
-    if(Fig==2){ k=2; l=1}
-    if(Fig==3){ k=1; l=2}
-    if(Fig==4){ k=2; l=2}
-        age = age.vec.30.50.80[j]
-        X <- as.matrix(c(1,age-AgeMeans[i],k-1,l-1))
-        mus <- Mat%*%X
-        sds <- sqrt(unlist(FinalModelPosteriors$sigma2))[10001:20000]
-        SurvMat <- matrix(ncol=length(Time),nrow=10000)
-        for(t in 1:length(Time)){
-          SurvMat[,t] <- plnorm(Time[t], meanlog=mus, sdlog = sds,lower = FALSE)
-        } #save figure
-        # png(paste0('surv_',i,'_',age.vec[j],'_',k-1,'_',l-1,'_',m-1,'.png'),width=400,height=400)
-        current_status = c(k,l)
-        mutations = sapply(1:nrow(genes_mutated), function(i) genes_mutated[i, ][current_status[i]])
-        mutations[is.na(mutations)] = rep(' ', sum(is.na(mutations)))
-        
-        if (k ==1 & l == 1) {
-          title = paste("Age ", age, ", No Mutations")
-        } else {
-          title = paste("Age ", age, ", Mutation at: ", paste(mutations, collapse = ''), sep = '', collapse = '')
-        }
-        plot(Time/365,colMeans(SurvMat), type = 'l', ylim=c(0,1), ylab = "Probability of survival", xlab = 'Time (years)', 
-             main = title,lwd=2)
-        points(Time/365,apply(SurvMat,2,quantile,probs=c(0.975)), type = 'l', lty=2)
-        points(Time/365,apply(SurvMat,2,quantile,probs=c(0.025)), type = 'l', lty=2)
-        # dev.off()
-      }
-    }
-dev.off()
 
 png('ACC_figs_v2.png',width=900,height=700)
 par(mfrow = c(2,2))
