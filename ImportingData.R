@@ -1,7 +1,7 @@
 # Code for importing data and calculating mutation rates across cancer types
 # Using TCGA2STAT library, imports data through Broad Firehose pipeline in ready-to-use
 # format for statistical analysis. 
-# Author: SarahSamorodnitsky
+# Author: Sarah Samorodnitsky
 
 library(TCGA2STAT)
 
@@ -58,7 +58,7 @@ MatchBarCodes = function(CancerData, clinical_data, cancer_types) {
   return(list(X_new = X_new, Y_new = Y_new))
 }
 
-# Calculating the rate of mutation by taking the average mutation rate for each gene across all 28 cancer types being considered
+# Calculating the rate of mutation by taking the average mutation rate for each gene across all 27 cancer types being considered
 MutationRateByCancer = function(CancerData, cancer_types) {
   n = length(CancerData)
   
