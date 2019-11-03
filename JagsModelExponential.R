@@ -298,14 +298,14 @@ PL.exp = foreach(cv_iter = 1:5, .combine = c, .packages = c("rjags")) %dopar%{
   # Burn-in
   update(mod.full.cv_iter, 10000) 
   
-  # Generate 15000 more iterations
+  # Generate 10000 more iterations
   s.cv_iter <- jags.samples(mod.full.cv_iter, c('beta', 'betatilde', 'g'), 
                             n.iter = 10000, thin = 10) 
   
   iters = 10000
   # Save the posteriors for betas in format compatible with posterior likelihood function
   betas = lapply(1:length(F27.50.3_S), function(type) { # for each cancer type
-    lapply(1:(iters/10), function(iter) { # for each iteration (there are 1500 because the chain was thinned every 10 samples)
+    lapply(1:(iters/10), function(iter) { # for each iteration (there are 1000 because the chain was thinned every 10 samples)
       type_iter = s.cv_iter$beta[type, , iter, 1]
       names(type_iter) = c("intercept", colnames(F27.50.3_S[[1]]))
       type_iter

@@ -321,7 +321,7 @@ PL.weib = foreach(cv_iter = 1:5, .combine = c, .packages = c("rjags")) %dopar%{
   # Save the posteriors for betas in format compatible with posterior likelihood function
   iters = 10000
   betas = lapply(1:length(cancer_types_27), function(type) { # for each cancer type
-    lapply(1:(iters/10), function(iter) { # for each iteration (there are 1500 because the chain was thinned every 10 samples)
+    lapply(1:(iters/10), function(iter) { # for each iteration (there are 1000 because the chain was thinned every 10 samples)
       type_iter = s.cv_iter$beta[type, , iter, 1]
       names(type_iter) = Genes
       type_iter
