@@ -31,9 +31,9 @@ Generate5FoldTrainingSet = function(X, Y, cancer_types, n_vec) {
   
   # subsetting Y into training set
   prop = 0.2 # proportion to go into test set
+  n = length(cancer_types)
   Training_obs = InitManyLists(n)
   names(Training_obs) = cancer_types
-  n = length(cancer_types)
   for (k in 1:n) { # for each cancer type
     current_n = n_vec[k] # size of current cancer type
     reorder_ind = sample(1:current_n, size = current_n, replace = F) # reorder the observations
@@ -200,7 +200,7 @@ PosteriorLikelihood = function(betas, shape, X, Y, Last_Contact, Training_obs) {
   return(PL_Survival)
 }
 
-Last_Contact_27 = FS27.50$LastContact # now we have all the components to create the credible intervals
+Last_Contact_27 = Last_Contact # now we have all the components to create the credible intervals
 
 # 5-fold cross validation
 cl <- makeCluster(12)

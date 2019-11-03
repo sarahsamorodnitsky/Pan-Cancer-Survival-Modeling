@@ -297,6 +297,9 @@ AvgMutRate = AvgMutRate[!(names(AvgMutRate) %in% c("Unknown", "."))] # Getting r
 AvgMutRate = sort(AvgMutRate, decreasing = T)[1:50]
 NewGenes = sort(names(AvgMutRate))
 
+# Number of samples
+sum(sapply(CancerData_RO_S, ncol))
+
 # Selecting the genes of interest from the full dataset
 CancerData_SelectGenes = SelectGenesFromOrigData(CancerData_RO_S, clinical_data_list_S, NewGenes, cancer_types_27)
 
