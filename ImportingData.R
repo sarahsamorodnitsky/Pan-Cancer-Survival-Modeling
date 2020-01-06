@@ -5,7 +5,7 @@
 
 library(TCGA2STAT)
 
-# load("CancerDataForFindingGenes.rda") # Use this if having trouble with TCGA2STAT package
+load("CancerDataForFindingGenes.rda") # Use this if having trouble with TCGA2STAT package
 clinical_data = read.csv("TCGA-CDR.csv", header = T) # loads in TCGA clinical data
 cancer_types = levels(as.factor(clinical_data$type)) # cancer types available in TCGA dataset
 
@@ -156,9 +156,10 @@ AddAgeCensorToX = function(CancerData_SelectGenes, clinical_data_list_S, cancer_
     
     current_X_new = cbind(age, as.numeric(as.character(current_Y$last_contact_days_to)), current_X) # concatenating age, censor time, and mutation status
     colnames(current_X_new) = c("Age", "LastContact", NewGenes)
-    rownames(current_X_new) = NULL
+    # rownames(current_X_new) = NULL
     
     current_Y_new = as.numeric(as.character(current_Y$death_days_to))
+    names(current_Y_new) = current_Y$bcr_patient_barcode
     
     X[[i]] = current_X_new
     Y[[i]] = current_Y_new
@@ -324,6 +325,8 @@ F27.50.3 = FS27.50.2$Full
 S27.50.3 = FS27.50.2$Survival
 Last_Contact = FS27.50.2$LastContact
 
+n.vec = sapply(F27.50.3, nrow)
+
 # Checking for any NAs in the mutation data 
 check = sapply(F27.50.3, function(i) apply(i, 2, function(k) any(is.na(k))))
 any(check)
@@ -352,3 +355,5 @@ any(NA.lc.surv)
 
 # Save the mutation data, survival data, names of the 27 cancer types, and the genes selected in an RDA file called "FSCG.rda"
 save(F27.50.3, S27.50.3, Last_Contact, cancer_types_27, NewGenes, file = "FSCG.rda", version = 2)
+
+
