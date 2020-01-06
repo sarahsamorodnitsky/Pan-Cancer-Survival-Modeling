@@ -353,6 +353,38 @@ for (i in 1:length(S27.50.3)) {
 same.length
 any(NA.lc.surv)
 
+# Check that the data used in the analysis matches the original clinical data
+# even after processing. 
+
+surv.time.matches = c()
+cens.time.matches = c()
+age.matches = c()
+for (i in 1:length(cancer_types_27)) {
+  current.cans = F27.50.3[[i]]
+  surv.i = c()
+  cens.i = c()
+  ages.i = c()
+  for (j in 1:nrow(F27.50.3[[i]])) {
+    current.id = rownames(current.cans)[j]
+    current.clin = clinical_data[clinical_data$bcr_patient_barcode == current.id,] 
+    current.surv = current.clin$death_days_to
+    current.cens = current.clin$last_contact_days_to
+    current.age = current.clin$age_at_initial_pathologic_diagnosis
+    surv.saved = S27.50.3[[i]][j]
+    cens.saved = Last_Contact[[i]][j]
+    age.saved = F27.50.3[[i]][,1][j]
+    surv.i[j] = if (!is.na(surv.saved)) surv.saved == current.surv else (is.na(surv.saved) & current.surv == "#N/A")
+    cens.i[j] = if (!is.na(cens.saved)) cens.saved == current.cens else (is.na(cens.saved) & current.cens == "#N/A")
+    ages.i[j] = age.saved == current.age
+  }
+  surv.time.matches[i] = all(surv.i)
+  cens.time.matches[i] = all(cens.i)
+  age.matches[i] = all(ages.i)
+}
+all(surv.time.matches)
+all(cens.time.matches)
+all(age.matches)
+
 # Save the mutation data, survival data, names of the 27 cancer types, and the genes selected in an RDA file called "FSCG.rda"
 save(F27.50.3, S27.50.3, Last_Contact, cancer_types_27, NewGenes, file = "FSCG.rda", version = 2)
 
