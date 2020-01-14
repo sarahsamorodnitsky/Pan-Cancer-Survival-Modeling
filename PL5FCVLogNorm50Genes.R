@@ -285,27 +285,6 @@ PosteriorLikelihood = function(posteriors, X, Y) {
     return(new_vec)
   }
   
-  # LogLikelihood = function(x_ij, y_ij, y_ijc, betas_it, sigma2_it) {
-  #   # calculate the likelihood for just one set of posteriors
-  #   mu_ij = sum(x_ij * betas_it) 
-  #   
-  #   LogNormalLikelihood = function(y, mu, sig2) {
-  #     # Calculates log density of normal 
-  #     # nl = (1/sqrt(2*pi*sig2))*exp(-(1/(2*sig2))*(y - mu)^2)
-  #     lnl = (-0.5)*log(2*pi*sig2) - (1/(2*sig2))*(y - mu)^2
-  #     return(lnl)
-  #   }
-  #   
-  #   if (!is.na(y_ij)) { # y_ij is not censored
-  #     post_ij = LogNormalLikelihood(log(y_ij), mu = mu_ij, sig2 = sigma2_it) # dnorm(log(y_ij), mean = mu_ij1, sd = sqrt(sigma21_it)) # sample from log-normal
-  #     
-  #   } else { # if y_ij is censored, use censoring time
-  #     post_ij = log(1 - pnorm((log(y_ijc) - mu_ij)/sqrt(sigma2_it), mean = 0, sd = 1)) 
-  #   }
-  #   
-  #   return(post_ij)
-  # }
-  
   LogLikelihood = function(x_ij, y_ij, y_ijc, betas_it, sigma2_it) {
     mu_ij = sum(x_ij * betas_it)
     
