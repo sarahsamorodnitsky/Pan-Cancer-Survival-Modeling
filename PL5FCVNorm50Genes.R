@@ -1,5 +1,5 @@
 # Script for calculating the log-posterior likelihood for the normal survival model
-# Author: Sarah Samorodnitsky
+# Author: Sarah Samorodnitsky and Eric Lock
 
 library(MASS)
 library(truncnorm)
@@ -104,8 +104,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
   # Functions to help calculate posteriors
   Beta_Posterior_Helper = function(x_i, y_i, sigma2_i, lambda2_i, current_beta_tilde) {
     # returns the mean and the variance of the multivariate normal posterior for each beta_i
-    # the mean should be a vector of length 2 because there are 2 covariates
-    # the variance should be a 2x2 covariance matrix because 2 covariates
     x_i = as.matrix(x_i); y_i = as.matrix(y_i)
     B = solve((1/sigma2_i)*t(x_i)%*%x_i + diag((1/lambda2_i))) # not sure if its right to diag(1/lambda2)
     b = (1/sigma2_i)*t(x_i) %*% y_i + (1/lambda2_i) * current_beta_tilde
@@ -114,7 +112,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
   }
   
   Lambda2_Posterior_Helper = function(current_betas, current_beta_tilde, I) {
-    # calculates posterior variance for each coefficent across all 4 cancer types
     tot = rep(0, p)
     for (i in 1:I) {
       tot = tot + (current_betas[[i]] - current_beta_tilde)^2
@@ -129,7 +126,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
       x_i = X[[i]]; y_i = Y[[i]]; current_betas_i = current_betas[[i]]
       x_i = as.matrix(x_i); y_i = as.matrix(y_i)
       tot = tot + sum((y_i - x_i %*% current_betas_i)^2)
-      # if (is.na(tot)) {print(i)}
     }
     return(tot)
   }
@@ -174,7 +170,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
   total_obs = sum(n_vec)
   
   ### initializing the objects to store the posterior samples
-  ### first initialize for log-normal posterior samples
   betas = InitManyLists(n) # list to store posterior betas, four inner lists because four cancer types
   names(betas) = names(X)
   beta_tilde = matrix(ncol = p, nrow = iters + 1) # list to include posterior mean for age covariate and mutation status covariate
@@ -242,9 +237,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
       Censored_Last_Contact = Last_Contact_S[[k]][Censored_S[[k]]]
       Censor_Lower_Bound = Last_Contact_S[[k]][Censored_S[[k]]]
       
-      # Mu_Survival = current_betas[[k]][1] + 
-      #   current_betas[[k]][2]*Censored_Obs[,2] + 
-      #   current_betas[[k]][3]*Censored_Obs[,3]
       Mu_Survival = Censored_Obs %*% t(t(current_betas[[k]]))
       random_survival = rtruncnorm(n_gens, a = Censor_Lower_Bound, 
                                    mean = Mu_Survival, 
@@ -361,14 +353,12 @@ PosteriorLikelihood = function(posteriors, X, Y) {
   posterior.vec = list()
   ind_to_use = seq(10000, 20000, by = 10)
   
-  for (j in ind_to_use) { ##EFL: changed index 'i' to 'j' here
+  for (j in ind_to_use) { 
     
     # for each cancer type
     # for each row in that cancer type
     # apply Likelihood with the corresponding cancer type's posterior parameters
     # at the jth iteration
-    # takes 7 seconds to run
-    #EFL: also changed here 'i' to 'j' on left-hand side below
     posterior.vec[[j]] = unlist(lapply(seq(length(cancer_types_27)), function(k) sapply(seq(nrow(List_XY[[k]])), # for each cancer type
                                                                                         function(i) LogLikelihood(List_XY[[k]][i, -c(y_col, yc_col)], List_XY[[k]][i, y_col],  # for each patient in the test set
                                                                                                                   List_XY[[k]][i, yc_col], # ith observation, censor time
@@ -377,23 +367,6 @@ PosteriorLikelihood = function(posteriors, X, Y) {
     
   }
   
-  # calculating the posterior likelihood
-  #EFL: I've commented out the code below  -- see my email
-  #PL = 0
-  #for (i in 1:length(posterior.vec)) {
-  #  iter_i = posterior.vec[[i]] # the posterior likelihood values for the ith iteration
-  ##EFL: Added line below to define iter_i.vec
-  #  iter_i.vec = unlist(iter_i)
-  
-  # log-likelihood: sum of the logs
-  # ll_i = sum(sapply(iter_i, function(j) sum(log(j))))
-  #  ll_i = logSum(iter_i.vec)
-  
-  #  PL = PL + ll_i
-  #}
-  # PL_Survival = PL/length(posterior.vec)
-  
-  #EFL: here is revised code to aggrate the log-likelihoods
   #EFL: organize log-likelihoods into M by N matrix, where M is number of test samples and N is number of iterations
   logLike.mat <- matrix(nrow = length(unlist(Test_obs)), ncol= length(ind_to_use))
   for(j in ind_to_use) { # corresponds to every 10th sample 
@@ -447,4 +420,4 @@ PL.N = foreach(cv_iter = 1:5, .combine = c, .packages = c("MASS", "truncnorm", "
 stopCluster(cl)
 end <- Sys.time()
 end - start
-mean(PL.N) # -4045.409 ##### -3788.965, -3919.713 without MESO
+mean(PL.N) 
