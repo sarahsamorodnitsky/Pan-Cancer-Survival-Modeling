@@ -307,17 +307,17 @@ CancerData_SelectGenes = SelectGenesFromOrigData(CancerData_RO_S, clinical_data_
 # Check that each cancer type has the same number of columns/genes (should be length(NewGenes) = 50)
 sapply(CancerData_SelectGenes, ncol)
 
+# Add the time of last contact to the mutation dataset
+FS27.50 = AddAgeCensorToX(CancerData_SelectGenes, clinical_data_list_S, cancer_types_27, NewGenes) # will give warnings
+F27.50.2 = FS27.50$X
+S27.50.2 = FS27.50$Y
+
 # Check that there are no NAs in the age column
 any.NAs = c()
 for (i in 1:length(F27.50.2)) {
   any.NAs[i] = any(is.na(F27.50.2[[i]][,1]))
 }
 any.NAs
-
-# Add the time of last contact to the mutation dataset
-FS27.50 = AddAgeCensorToX(CancerData_SelectGenes, clinical_data_list_S, cancer_types_27, NewGenes) # will give warnings
-F27.50.2 = FS27.50$X
-S27.50.2 = FS27.50$Y
 
 # Processing the data so that extraneous observations are removed
 FS27.50.2 = PreProcessing(F27.50.2, S27.50.2, cancer_types_27)
