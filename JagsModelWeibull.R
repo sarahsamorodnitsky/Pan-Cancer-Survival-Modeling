@@ -92,7 +92,7 @@ PosteriorLikelihood = function(betas, shape, X, Y, Last_Contact, Training_obs) {
     betas_it = betas[[k]][[j]]
     
     # calculate the likelihood for just one set of posteriors
-    scale_ij = exp(sum(x_ij * betas_it))
+    scale_ij = (exp(sum(x_ij * betas_it)))^(1/shape_t) 
     
     if (!is.na(y_ij)) { # y_ij is not censored
       post_ij = dweibull(y_ij, shape = shape_t, scale = scale_ij, log = TRUE)
