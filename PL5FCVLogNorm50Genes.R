@@ -108,7 +108,7 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
     # the mean should be a vector of length 2 because there are 2 covariates
     # the variance should be a 2x2 covariance matrix because 2 covariates
     x_i = as.matrix(x_i); y_i = as.matrix(y_i)
-    B = solve((1/sigma2_i)*t(x_i)%*%x_i + diag((1/lambda2_i))) # not sure if its right to diag(1/lambda2)
+    B = solve((1/sigma2_i)*t(x_i)%*%x_i + diag((1/lambda2_i))) 
     b = (1/sigma2_i)*t(x_i) %*% y_i + (1/lambda2_i) * current_beta_tilde
     mean = B%*%b; var = B
     return(list(mean = mean, var = var))
