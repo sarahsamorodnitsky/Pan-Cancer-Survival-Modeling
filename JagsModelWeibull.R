@@ -1,5 +1,5 @@
 # The JAGS script for the Weibull model including all genes and age as predictors
-# Author: Sarah Samorodnitsky
+# Author: Sarah Samorodnitsky and Eric Lock
 
 library(rjags)
 library(doParallel)
@@ -154,14 +154,12 @@ PosteriorLikelihood = function(betas, shape, X, Y, Last_Contact, Training_obs) {
   posterior.vec = list()
   
   i=1; k=1
-  for (j in 1:1000) { ##EFL: changed index 'i' to 'j' here
+  for (j in 1:1000) { 
     
     # for each cancer type
     # for each row in that cancer type
     # apply Likelihood with the corresponding cancer type's posterior parameters
     # at the jth iteration
-    # takes 7 seconds to run
-    #EFL: also changed here 'i' to 'j' on left-hand side below
     posterior.vec[[j]] = unlist(lapply(seq(length(cancer_types_27)), function(k) sapply(seq(nrow(List_XY[[k]])), # for each cancer type
                                                                                         function(i) LogWeibullLikelihood(List_XY[[k]][i, -c(y_col, yc_col)], 
                                                                                                                              List_XY[[k]][i, y_col],  # for each patient in the test set
@@ -169,23 +167,6 @@ PosteriorLikelihood = function(betas, shape, X, Y, Last_Contact, Training_obs) {
                                                                                                                              betas[[k]][[j]], shape[j]))))  # kth cancer type, jth iteration posterior
   }
   
-  # calculating the posterior likelihood
-  #EFL: I've commented out the code below  -- see my email
-  #PL = 0
-  #for (i in 1:length(posterior.vec)) {
-  #  iter_i = posterior.vec[[i]] # the posterior likelihood values for the ith iteration
-  ##EFL: Added line below to define iter_i.vec
-  #  iter_i.vec = unlist(iter_i)
-  
-  # log-likelihood: sum of the logs
-  # ll_i = sum(sapply(iter_i, function(j) sum(log(j))))
-  #  ll_i = logSum(iter_i.vec)
-  
-  #  PL = PL + ll_i
-  #}
-  # PL_Survival = PL/length(posterior.vec)
-  
-  #EFL: here is revised code to aggrate the log-likelihoods
   #EFL: organize log-likelihoods into M by N matrix, where M is number of test samples and N is number of iterations
   logLike.mat <- matrix(nrow = length(unlist(Test_obs)), ncol= length(posterior.vec))
   for(j in 1:length(posterior.vec)){

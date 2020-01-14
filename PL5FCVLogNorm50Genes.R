@@ -1,5 +1,5 @@
 # Script for calculating the log-posterior likelihood of the log-normal model
-# Author: Sarah Samorodnitsky
+# Author: Sarah Samorodnitsky and Eric Lock
 
 library(MASS)
 library(truncnorm)
@@ -369,14 +369,12 @@ PosteriorLikelihood = function(posteriors, X, Y) {
   posterior.vec = list()
   ind_to_use = seq(10000, 20000, by = 10)
   
-  for (j in ind_to_use) { ##EFL: changed index 'i' to 'j' here
+  for (j in ind_to_use) {
     
     # for each cancer type
     # for each row in that cancer type
     # apply Likelihood with the corresponding cancer type's posterior parameters
     # at the jth iteration
-    # takes 7 seconds to run
-    #EFL: also changed here 'i' to 'j' on left-hand side below
     posterior.vec[[j]] = unlist(lapply(seq(length(cancer_types_27)), function(k) sapply(seq(nrow(List_XY[[k]])), # for each cancer type
                                                                                         function(i) LogLikelihood(List_XY[[k]][i, -c(y_col, yc_col)], List_XY[[k]][i, y_col],  # for each patient in the test set
                                                                                                                   List_XY[[k]][i, yc_col], # ith observation, censor time
