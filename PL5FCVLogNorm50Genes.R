@@ -65,13 +65,8 @@ Generate5FoldTrainingSet = function(X, Y, cancer_types, n_vec) {
 # The model which returns the set of training observations
 ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sigma2_start, genes,
                                beta_tilde_start, lambda2_start, iters, p, cv_iter, Training_obs) {
-  # Survival_Dist = "normal" if survival times generated from truncated normal dist or
-  # "log-normal" if survival times generated from truncated log-normal distribution
-  # p = the number of covariates: age + 54 gene mutation status + the intercept (user-supplied)
-  
   ListToMatrix = function(K) {
     # Useful helper function to transform lists into matrices
-    # returns a 3-column matrix
     if (length(K[[1]]) == 1) { # then K = Y, which is a list where each entry is one number
       return(matrix(unlist(K)))
     } else { # then K = X where X is a list of vectors
@@ -105,8 +100,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
   # Functions to help calculate posteriors
   Beta_Posterior_Helper = function(x_i, y_i, sigma2_i, lambda2_i, current_beta_tilde) {
     # returns the mean and the variance of the multivariate normal posterior for each beta_i
-    # the mean should be a vector of length 2 because there are 2 covariates
-    # the variance should be a 2x2 covariance matrix because 2 covariates
     x_i = as.matrix(x_i); y_i = as.matrix(y_i)
     B = solve((1/sigma2_i)*t(x_i)%*%x_i + diag((1/lambda2_i))) 
     b = (1/sigma2_i)*t(x_i) %*% y_i + (1/lambda2_i) * current_beta_tilde
@@ -115,7 +108,7 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
   }
   
   Lambda2_Posterior_Helper = function(current_betas, current_beta_tilde, I) {
-    # calculates posterior variance for each coefficent across all 4 cancer types
+    # calculates posterior variance for each coefficent across all cancer types
     tot = rep(0, p)
     for (i in 1:I) {
       tot = tot + (current_betas[[i]] - current_beta_tilde)^2
@@ -130,7 +123,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
       x_i = X[[i]]; y_i = Y[[i]]; current_betas_i = current_betas[[i]]
       x_i = as.matrix(x_i); y_i = as.matrix(y_i)
       tot = tot + sum((y_i - x_i %*% current_betas_i)^2)
-      # if (is.na(tot)) {print(i)}
     }
     return(tot)
   }
@@ -176,7 +168,7 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
   
   ### initializing the objects to store the posterior samples
   ### first initialize for log-normal posterior samples
-  betas = InitManyLists(n) # list to store posterior betas, four inner lists because four cancer types
+  betas = InitManyLists(n) # list to store posterior betas
   names(betas) = names(X)
   beta_tilde = matrix(ncol = p, nrow = iters + 1) # list to include posterior mean for age covariate and mutation status covariate
   beta_tilde[1,] = beta_tilde_start
@@ -223,8 +215,8 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
     current_betas = sapply(betas, `[`, i) # retrieve the current betas for the current iteration
     current_beta_tilde = beta_tilde[i,]
     W = Lambda2_Posterior_Helper(current_betas, current_beta_tilde, I)
-    post_lambda2_shape = (I/2) + 0.01 # change 1 to 0.01
-    post_lambda2_rate = 0.01 + (0.5)*W # change 1 to 0.01
+    post_lambda2_shape = (I/2) + 0.01 
+    post_lambda2_rate = 0.01 + (0.5)*W 
     lambda2[i+1, ] = 1/rgamma(p, shape = post_lambda2_shape, rate = post_lambda2_rate) 
     
     # posterior for beta tilde
@@ -235,8 +227,8 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
     
     
     # posterior for sigma^2
-    post_sigma2_shape = (total_obs2/2) + 0.01 # change 1 to 0.01
-    post_sigma2_rate = 0.5*Sigma2_Posterior_Rate_Helper(X_S, Y_S, current_betas, I) + 0.01 # change 1 to 0.01
+    post_sigma2_shape = (total_obs2/2) + 0.01 
+    post_sigma2_rate = 0.5*Sigma2_Posterior_Rate_Helper(X_S, Y_S, current_betas, I) + 0.01 
     sigma2[i+1] = 1/rgamma(1, post_sigma2_shape, rate = post_sigma2_rate)
     
     
@@ -247,9 +239,6 @@ ModelOnTrainingData = function(Full_Input_C, Survival_Input_C, Last_Contact, sig
       Censored_Last_Contact = Last_Contact_S[[k]][Censored_S[[k]]]
       Censor_Lower_Bound = Last_Contact_S[[k]][Censored_S[[k]]]
       
-      # Mu_Survival = current_betas[[k]][1] + 
-      #   current_betas[[k]][2]*Censored_Obs[,2] + 
-      #   current_betas[[k]][3]*Censored_Obs[,3]
       Mu_Survival = Censored_Obs %*% t(t(current_betas[[k]]))
       random_survival = rtruncnorm(n_gens, a = log(abs(Censor_Lower_Bound)), 
                                    mean = Mu_Survival, 
@@ -396,23 +385,6 @@ PosteriorLikelihood = function(posteriors, X, Y) {
     
   }
   
-  # calculating the posterior likelihood
-  #EFL: I've commented out the code below  -- see my email
-  #PL = 0
-  #for (i in 1:length(posterior.vec)) {
-  #  iter_i = posterior.vec[[i]] # the posterior likelihood values for the ith iteration
-  ##EFL: Added line below to define iter_i.vec
-  #  iter_i.vec = unlist(iter_i)
-  
-  # log-likelihood: sum of the logs
-  # ll_i = sum(sapply(iter_i, function(j) sum(log(j))))
-  #  ll_i = logSum(iter_i.vec)
-  
-  #  PL = PL + ll_i
-  #}
-  # PL_Survival = PL/length(posterior.vec)
-  
-  #EFL: here is revised code to aggrate the log-likelihoods
   #EFL: organize log-likelihoods into M by N matrix, where M is number of test samples and N is number of iterations
   logLike.mat <- matrix(nrow = length(unlist(Test_obs)), ncol= length(ind_to_use))
   for(j in ind_to_use) { # corresponds to every 10th sample 
