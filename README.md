@@ -5,9 +5,11 @@ This is the repository for code used in the Pan-Cancer Survival Modeling project
 # Description of each file 
 (1) ImportData.R: This file contains code for importing data through the TCGA2STAT pipeline and how we selected genes for our study. One will need to save the data from this code in order to run the rest of the analysis. At the bottom of this script there is a save() statement and at the top of each additional analysis script there is a load() statement to facilitate this. 
 
-(2) The four models we tried were the log-normal, normal, exponential, and Weibull. The corresponding scripts for these models are as follows: PL5FCVLogNorm50Genes.R, PL5FCVNorm50Genes.R, JagsModelExponential.R, JagsModelWeibull.R. Based on the results in these, we used the log-normal model to continue our analysis. 
+(2) GeneCorrelations.R: This file contains code for computing the correlation between mutation burdens of each gene across all cancer types. Code for plotting the correlations based on significance is also included in this script. 
 
-(3) To do forward selection, first we ran the forward selection procedure without any genes. This served as our baseline. The code for this can be found in ForwardSelectionNoGenes.R. Once this has been run, then one can move onto comparing single-gene models, two-gene models, and so on. 
+(3) The four models we tried were the log-normal, normal, exponential, and Weibull. The corresponding scripts for these models are as follows: PL5FCVLogNorm50Genes.R, PL5FCVNorm50Genes.R, JagsModelExponential.R, JagsModelWeibull.R. Based on the results in these, we used the log-normal model to continue our analysis. 
+
+(4) To do forward selection, first we ran the forward selection procedure without any genes. This served as our baseline. The code for this can be found in ForwardSelectionNoGenes.R. Once this has been run, then one can move onto comparing single-gene models, two-gene models, and so on. 
 
 ForwardSelection_5FoldCV.R contains the forward selection procedure. Running parallel loops in R with the foreach package requires the user to import everything in the outside environment into the parallel environment which is a bit tricky. To avoid this, we chose not write the entire forward selection procedure in a function. This also encourages the user to come back and check every once in awhile where the procedure is at and see how the results are progressing. For this reason, in order to run the one-gene model and the two-gene model and so on, copy-and-paste the chunk of code between the ### comments. Every line with a ### between these two comments must be changed at each step of the forward selection procedure. 
 
