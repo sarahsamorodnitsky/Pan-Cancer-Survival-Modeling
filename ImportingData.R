@@ -5,7 +5,7 @@
 
 library(TCGA2STAT)
 
-load("CancerDataForFindingGenes.rda") # Use this if having trouble with TCGA2STAT package
+# load("CancerDataForFindingGenes.rda") # Use this if having trouble with TCGA2STAT package
 clinical_data = read.csv("TCGA-CDR.csv", header = T) # loads in TCGA clinical data
 cancer_types = levels(as.factor(clinical_data$type)) # cancer types available in TCGA dataset
 
@@ -99,11 +99,8 @@ MutationRateByCancer = function(CancerData, cancer_types) {
   colnames(rates) = c("gene", cancer_types) # naming the columns appropriately
   rates = rates[,-1]
   
-  # now I have a matrix where each row is a gene and each column is a cancer type and
+  # now we have a matrix where each row is a gene and each column is a cancer type and
   # each entry is the mutation rate for that cancer type and that gene
-  
-  # subset the rates only for the cancer types of interest
-  # rates = rates[,!(colnames(rates) %in% c("PCPG", "PRAD", "TGCT", "THCA", "THYM"))]
   
   # now take the average mutation rate for each gene for each cancer type
   avg_rates = apply(rates, 1, mean)
