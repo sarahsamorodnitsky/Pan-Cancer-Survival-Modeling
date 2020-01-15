@@ -15,6 +15,8 @@ ForwardSelection_5FoldCV.R contains the forward selection procedure. Running par
 
 PL5CVLogNormEstCoefByCancerSeparately.R contains the code for estimating the posteriors for each parameter by cancer type separately (without borrowing information across cancer types). 
 
+CoxPHModelByCancerType.R contains the code for setting up a Cox proportional hazards model for each cancer type separately. 
+
 (5) Survival_Curves_ACC.R: This script contains code we used to create the survival curves for a patient with ACC depending on various ages and combinations of mutation statuses. The script imports the posteriors from fitting the final model, the FinalModelFromForwardSelectionFAT4_TP53.rda file of which can be found in this repository. This will load in a variable called "FinalModelPosteriors."
 
 (6) SimulateCoverage.R: This is the simulation we used to assess the coverage rates of our in-house Gibbs sampler. We generate 1000 datasets based on fixed true values of the parameters, calculate the posteriors for the parameters using our model, calculate the credible intervals for each, and then check if the true value of each parameter used to generate the data is contained in the credible interval. 
