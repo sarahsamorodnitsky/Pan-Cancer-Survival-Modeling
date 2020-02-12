@@ -243,7 +243,7 @@ PL.exp = foreach(cv_iter = 1:5, .combine = c, .packages = c("rjags")) %dopar%{
                       list("X" = F27.50.3_S.mat[, 1:52],
                            "is.censored" = (censored==1),
                            "tcens" = tcens,
-                           "t" = ifelse(censored==1, tcens, NA),
+                           "t" = ifelse(censored==0, tcens, NA),
                            "cancer" = as.numeric(cancer), 
                            "shape"=1) #set shape parameter to 1 for Weibull (gives exponential distribution)
   )

@@ -241,7 +241,7 @@ Model.weib = foreach(cv_iter = 1:5, .packages = c("rjags")) %dopar%{
                       list("X" = F27.50.3_S.mat[, 1:52],
                            "is.censored" = (censored==1),
                            "tcens" = tcens,
-                           "t" = ifelse(censored==1, tcens, NA),
+                           "t" = ifelse(censored==0, tcens, NA),
                            "cancer" = as.numeric(cancer)))
   
   # setting up the model
